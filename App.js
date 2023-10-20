@@ -34,7 +34,7 @@ const App = () => {
   const [penWidth, setPenWidth] = useState(1); // this is the width of the pen
   const [penColor, setPenColor] = useState("black"); // this is the color of the pen
 
-  
+
   const addPath = (path) => {
     const newPath = {
       path: path,
@@ -51,7 +51,7 @@ const App = () => {
     setPathString(pathString.value);
   };
 
-  const addAndClearTempString = () => {
+  const combinePaths = () => {
 
   };
 
@@ -100,12 +100,12 @@ const App = () => {
       renderCurrentSVGPath();
 
       //add the path to the array and clear the temp string
-      pathString.value += tempString.value;
-      pathString.value += "HELP ME";
-      console.log(pathString.value);
-      setPathString(pathString.value);
-      strokePositionsArray.value = [];
-      tempString.value = "";
+      // pathString.value += tempString.value;
+      // pathString.value += "HELP ME";
+      // console.log(pathString.value);
+      // setPathString(pathString.value);
+      // strokePositionsArray.value = [];
+      // tempString.value = "";
 
       //empty positions array
       addPath(pathString.value);
