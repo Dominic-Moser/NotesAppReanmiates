@@ -13,6 +13,7 @@ import {
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
 import Svg, { Circle, Path } from "react-native-svg";
+import Overlay from "./components/Overlay";
 
 const App = () => {
   const svgRef = useRef(null); // reference the currentstroke's svg so we can modify it
@@ -22,16 +23,16 @@ const App = () => {
 
   const xPositionPrev = useSharedValue(0); // value of the previous stroke, meant for calculating whether or not -
   const yPositionPrev = useSharedValue(0); // another point should be added to the svg stroke line
-
-  const tempString = useSharedValue("");
   const pathString = useSharedValue(""); // this is the literal string of the current stroke's path
-
+  // const combinedPathString = useSharedValue("");
+  let combinedPathString = "";
   const strokePositionsArray = useSharedValue([]); // this is the array of svg paths that are tracked and added to when the user lifts the pencil
+  const pathsToBeCombined = useSharedValue([]); // this is the array of svg paths that are tracked and added to when the user lifts the pencil
 
   const [pathStringState, setPathString] = useState(""); // these are the 'useState' function so I can rerender the function on command
   const [allPathsState, setAllPathsState] = useState([]); // same as above, just for the whole canvas
 
-  const [penWidth, setPenWidth] = useState(1); // this is the width of the pen
+  const [penWidth, setPenWidth] = useState(5); // this is the width of the pen
   const [penColor, setPenColor] = useState("black"); // this is the color of the pen
 
 
@@ -51,9 +52,54 @@ const App = () => {
     setPathString(pathString.value);
   };
 
-  const combinePaths = () => {
+  const combinePaths = async () => {  
+    for(let i = 0; i < pathsToBeCombined.value.length; i++){
+      // console.log("path", i , pathsToBeCombined.value);
+      // console.log("combining ")
+      combinedPathString += pathsToBeCombined.value[i];
+    
+    }
+    // setPenWidth(r30);
+    // console.log("combined path string", combinedPathString)
+    addPath(combinedPathString);
+
+    // deleteDuplicatePaths();
+
+    // pathsToBeCombined.value = [];
 
   };
+
+  const startNewPath = async () => {
+    // console.log("end point of the previous stroke", xPosition.value, yPosition.value);
+
+
+    strokePositionsArray.value = strokePositionsArray.value.slice(-3);
+    // strokePositionsArray.value = [];
+    addPath(pathString.value);
+
+    pathsToBeCombined.value.push(pathString.value);
+    // console.log("paths to be combined had", pathsToBeCombined.value, "added to it");
+
+    pathString.value = "";
+  };
+
+  const deleteDuplicatePaths = () => {
+    for(let i = 1; i< pathsToBeCombined.value.length + 1; i++){
+      let cutAllPathsState = allPathsState.splice(allPathsState.length - i, 1);
+      setAllPathsState(cutAllPathsState);
+    }
+  };
+
+
+function clearCanvas() {
+  console.log("clearing canvas");
+  setAllPathsState([]);
+  setPathString("");
+  // setPenColor("black");
+  // setPenWidth(5);
+}
+
+
 
   const renderAllSvgPaths = () => {};
 
@@ -63,13 +109,16 @@ const App = () => {
       // console.log("touches down! -", e);
       xPosition.value = e.allTouches[0].x;
       yPosition.value = e.allTouches[0].y;
-
+      // console.log("finger down")
     })
 
     .onTouchesMove((e) => {
+      // console.log("finger moving")
+
       //variables for checking if the positions are too close
       const previousValue = { x: xPosition.value, y: yPosition.value };
       const currentValue = { x: e.allTouches[0].x, y: e.allTouches[0].y };
+
 
       //set previous values
       xPositionPrev.value = xPosition.value;
@@ -83,38 +132,55 @@ const App = () => {
         y: e.allTouches[0].y,
       });
 
+      // if(strokePositionsArray.value.length <= 1){
+      //   console.log("starting point of new line", strokePositionsArray.value[0]);
+      // }
+
+      // console.log(strokePositionsArray.value.length)
+
       //add the action that renders the svg userStroke here
       renderCurrentSVGPath();
+
+      // console.log(strokePositionsArray.value.length);
+
+      if(strokePositionsArray.value.length > 100){
+        startNewPath();
+        setPenColor(getRandomColor());
+      }
+      
     })
     .onTouchesUp((e) => {
-      console.log("touches up! -", e);
-      console.log("touches up! -", e.allTouches[0].x, e.allTouches[0].y);
-      xPosition.value = e.allTouches[0].x;
-      yPosition.value = e.allTouches[0].y;
-      strokePositionsArray.value.push({
-        x: e.allTouches[0].x,
-        y: e.allTouches[0].y,
-      });
+      // // console.log("finger up");
+      // // console.log("touches up! -", e.allTouches[0].x, e.allTouches[0].y);
+      // xPosition.value = e.allTouches[0].x;
+      // yPosition.value = e.allTouches[0].y;
+      // strokePositionsArray.value.push({
+      //   x: e.allTouches[0].x,
+      //   y: e.allTouches[0].y,
+      // });
+
+      //start a new path so even if the array is less than 100, it still shows that segement
+      startNewPath();        
 
       //rerender it again with the latest point
       renderCurrentSVGPath();
 
-      //add the path to the array and clear the temp string
-      // pathString.value += tempString.value;
-      // pathString.value += "HELP ME";
-      // console.log(pathString.value);
-      // setPathString(pathString.value);
-      // strokePositionsArray.value = [];
-      // tempString.value = "";
-
       //empty positions array
       addPath(pathString.value);
       strokePositionsArray.value = [];
-    });
+
+      //paths get combined here
+      combinePaths();
+
+      // deleteDuplicatePaths();
+      pathsToBeCombined.value = [];
+      });
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View className="w-full h-full bg-slate-200">
+      <Overlay clearCanvas={clearCanvas}/>
+
         <GestureDetector gesture={panGesture}>
           <View className="w-full h-full">
             <Svg ref={svgRef} className="bg-transparentr w-full h-full">
@@ -173,3 +239,12 @@ const createSmoothPath = (points) => {
 
   return path;
 };
+
+function getRandomColor() {
+  const letters = "0123456789ABCDEF";
+  let color = "#";
+  for (let i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return "black";
+}
